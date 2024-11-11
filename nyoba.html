@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mine Sweeping Game</title>
+    <style>
+        body, html {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            gap: 2px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #d1d1d1;
+            border: 1px solid #bbb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .cell.revealed {
+            background-color: #e6e6e6;
+            cursor: default;
+        }
+
+        .bomb {
+            color: red;
+        }
+
+        .restart {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        .restart:hover {
+            background-color: #2980b9;
+        }
+
+        /* CSS for Modal */
+        #game-over-modal, #win-modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #modal-content {
+            background-color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #modal-content img {
+            width: 100px;
+            margin-bottom: 15px;
+        }
+
+        #modal-content h2 {
+            margin-bottom: 10px;
+            color: red;
+        }
+
+        #close-modal, #close-win {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Mine Sweeping Game</h1>
+        <div id="grid"></div>
+        <button class="restart" onclick="startGame()">Restart Game</button>
+    </div>
+
+    <!-- Modal for Game Over -->
+    <div id="game-over-modal">
+        <div id="modal-content">
+            <img src="https://via.placeholder.com/100?text=Game+Over" alt="Game Over">
+            <h2>Kalah!</h2>
+            <p>Anda terkena bom! Coba lagi?</p>
+            <button id="close-modal" onclick="closeModal()">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Modal for Win -->
+    <div id="win-modal">
+        <div id="modal-content">
+            <img src="https://via.placeholder.com/100?text=You+Win" alt="You Win">
+            <h2>Selamat!</h2>
+            <p>Anda berhasil menebak semua lokasi bom!</p>
+            <button id="close-win" onclick="closeWinModal()">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        const gridSize = 10;
+        const bombCount = 15;
+        let grid;
+        let safeCellsCount;
+
+        function startGame() {
+            grid = [];
+            document.getElementById('grid').innerHTML = '';
+            document.getElementById('game-over-modal').style.display = 'none';
+            document.getElementById('win-modal').style.display = 'none';
+            safeCellsCount = 0;
+
+            for (let row = 0; row < gridSize; row++) {
+                grid[row] = [];
+                for (let col = 0; col < gridSize; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.setAttribute('data-row', row);
+                    cell.setAttribute('data-col', col);
+                    cell.addEventListener('click', () => revealCell(row, col));
+                    grid[row][col] = { element: cell, bomb: false, revealed: false, adjacentBombs: 0 };
+                    document.getElementById('grid').appendChild(cell);
+                    safeCellsCount++; // Hitung semua sel
+                }
+            }
+
+            placeBombs();
+            calculateAdjacency();
+            safeCellsCount -= bombCount; // Kurangi jumlah sel yang aman dengan jumlah bom
+        }
+
+        function placeBombs() {
+            let bombsPlaced = 0;
+            while (bombsPlaced < bombCount) {
+                const row = Math.floor(Math.random() * gridSize);
+                const col = Math.floor(Math.random() * gridSize);
+                if (!grid[row][col].bomb) {
+                    grid[row][col].bomb = true;
+                    bombsPlaced++;
+                }
+            }
+        }
+
+        function calculateAdjacency() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (!grid[row][col].bomb) {
+                        let adjacentBombs = 0;
+                        for (let r = -1; r <= 1; r++) {
+                            for (let c = -1; c <= 1; c++) {
+                                const newRow = row + r;
+                                const newCol = col + c;
+                                if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize && grid[newRow][newCol].bomb) {
+                                    adjacentBombs++;
+                                }
+                            }
+                        }
+                        grid[row][col].adjacentBombs = adjacentBombs;
+                    }
+                }
+            }
+        }
+
+        function revealCell(row, col) {
+            const cell = grid[row][col];
+            if (cell.revealed) return;
+            cell.revealed = true;
+            cell.element.classList.add('revealed');
+
+            if (cell.bomb) {
+                cell.element.textContent = '💣';
+                cell.element.classList.add('bomb');
+                showModal(); // Tampilkan modal game over
+                revealAllBombs();
+            } else {
+                safeCellsCount--; // Kurangi jumlah sel yang aman yang tersisa
+                if (cell.adjacentBombs > 0) {
+                    cell.element.textContent = cell.adjacentBombs;
+                } else {
+                    for (let r = -1; r <= 1; r++) {
+                        for (let c = -1; c <= 1; c++) {
+                            const newRow = row + r;
+                            const newCol = col + c;
+                            if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize) {
+                                revealCell(newRow, newCol);
+                            }
+                        }
+                    }
+                }
+
+                // Cek apakah pemain menang
+                if (safeCellsCount === 0) {
+                    showWinModal();
+                }
+            }
+        }
+
+        function revealAllBombs() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (grid[row][col].bomb) {
+                        grid[row][col].element.textContent = '💣';
+                        grid[row][col].element.classList.add('bomb');
+                    }
+                }
+            }
+        }
+
+        function showModal() {
+            document.getElementById('game-over-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('game-over-modal').style.display = 'none';
+            startGame();
+        }
+
+        function showWinModal() {
+            document.getElementById('win-modal').style.display = 'flex';
+        }
+
+        function closeWinModal() {
+            document.getElementById('win-modal').style.display = 'none';
+            startGame();
+        }
+
+        startGame();
+    </script>
+</body>
+</html>

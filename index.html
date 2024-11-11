@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="flag-pl.jpg" type="image/x-icon">
+    <link href="styles.css" rel="stylesheet" />
+    <title>Try Try!</title>
+</head>
+<body>
+    <!-- NAVBAR START -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="logo">
+                <img src="img/PortaX_Logo.png" width="18%" height="18%">
+            </div>
+
+            <a href="#beranda">Home</a>
+            <a href="#isi">Isi</a>
+            <a href="#kontak">Contact Me</a>
+            <a href="logout" class="btn">Logout</a>
+        </nav>
+    </header>
+    <!-- NAVBAR END -->
+    <div class="container">
+        <div class="flagpl">
+            <div class="triangle"></div>
+            <div class="hitam"></div>
+            <div class="putih"></div>
+            <div class="hijau"></div>
+        </div>
+        
+        <div class="free">FREE PALESTINE</div>
+    </div>
+    
+    <div class="container">
+        <div class="flagid">
+            <div class="merah"></div>
+            <div class="puth"></div>
+        </div>
+        
+        <div class="bro">WE'RE BROTHERS</div>
+    </div>
+
+    <div class="badan">
+        <div class="art">
+            <div class="barrel"></div>
+            <div class="handle"></div>
+            <div class="trigger-guard"></div>
+            <div class="trigger"></div>
+            
+            <div class="yeaa">yeaa exactly..</div>
+        </div>
+    </div>
+
+    <div class="gradasi">Lorem ipsum dolor sit amet consectetur adipisicing elit. Eos architecto perferendis delectus temporibus natus eum perspiciatis iusto numquam minima non earum necessitatibus ullam, veniam dolores laboriosam obcaecati libero! Perspiciatis, est?</div>
+
+    <div id="game-container">
+        <h1>Jangan Sampai Kena BOM!!</h1>
+        <div id="grid"></div>
+        <button class="restart" onclick="startGame()">Mulai Kahh?</button>
+    </div>
+
+    <!-- Popup kalo kalahh -->
+    <div id="game-over-modal">
+        <div id="modal-content">
+            <img src="img/wlee.png" alt="Game Over">
+            <h2>CUPU AMAT</h2>
+            <p>Coba Lagi Sana!</p>
+            <button id="close-modal" onclick="closeModal()">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Popup kalo menang -->
+    <div id="win-modal">
+        <div id="modal-content">
+            <img src="img/anjaymenang.png" alt="You Win">
+            <h2>ANJAYY MENANG</h2>
+            <p>Keren Dah Keren! Lopyu!</p>
+            <button id="close-win" onclick="closeWinModal()">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        const gridSize = 10;
+        const bombCount = 15;
+        let grid;
+        let safeCellsCount;
+    
+        function startGame() {
+            grid = [];
+            document.getElementById('grid').innerHTML = '';
+            document.getElementById('game-over-modal').style.display = 'none';
+            document.getElementById('win-modal').style.display = 'none';
+            safeCellsCount = 0;
+    
+            for (let row = 0; row < gridSize; row++) {
+                grid[row] = [];
+                for (let col = 0; col < gridSize; col++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.setAttribute('data-row', row);
+                    cell.setAttribute('data-col', col);
+                    cell.addEventListener('click', () => revealCell(row, col));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        toggleFlag(row, col);
+                    });
+                    grid[row][col] = { element: cell, bomb: false, revealed: false, flagged: false, adjacentBombs: 0 };
+                    document.getElementById('grid').appendChild(cell);
+                    safeCellsCount++; // Hitung semua sel
+                }
+            }
+    
+            placeBombs();
+            calculateAdjacency();
+            safeCellsCount -= bombCount; // Kurangi jumlah sel yang aman dengan jumlah bom
+        }
+    
+        function placeBombs() {
+            let bombsPlaced = 0;
+            while (bombsPlaced < bombCount) {
+                const row = Math.floor(Math.random() * gridSize);
+                const col = Math.floor(Math.random() * gridSize);
+                if (!grid[row][col].bomb) {
+                    grid[row][col].bomb = true;
+                    bombsPlaced++;
+                }
+            }
+        }
+    
+        function calculateAdjacency() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (!grid[row][col].bomb) {
+                        let adjacentBombs = 0;
+                        for (let r = -1; r <= 1; r++) {
+                            for (let c = -1; c <= 1; c++) {
+                                const newRow = row + r;
+                                const newCol = col + c;
+                                if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize && grid[newRow][newCol].bomb) {
+                                    adjacentBombs++;
+                                }
+                            }
+                        }
+                        grid[row][col].adjacentBombs = adjacentBombs;
+                    }
+                }
+            }
+        }
+    
+        function revealCell(row, col) {
+            const cell = grid[row][col];
+            if (cell.revealed || cell.flagged) return;
+            cell.revealed = true;
+            cell.element.classList.add('revealed');
+    
+            if (cell.bomb) {
+                cell.element.textContent = '💣';
+                cell.element.classList.add('bomb');
+                showModal(); // Tampilkan modal game over
+                revealAllBombs();
+            } else {
+                safeCellsCount--; // Kurangi jumlah sel yang aman yang tersisa
+                if (cell.adjacentBombs > 0) {
+                    cell.element.textContent = cell.adjacentBombs;
+                } else {
+                    for (let r = -1; r <= 1; r++) {
+                        for (let c = -1; c <= 1; c++) {
+                            const newRow = row + r;
+                            const newCol = col + c;
+                            if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize) {
+                                revealCell(newRow, newCol);
+                            }
+                        }
+                    }
+                }
+    
+                // Cek apakah pemain menang
+                if (safeCellsCount === 0) {
+                    showWinModal();
+                }
+            }
+        }
+    
+        function toggleFlag(row, col) {
+            const cell = grid[row][col];
+            if (cell.revealed) return;
+            if (cell.flagged) {
+                cell.flagged = false;
+                cell.element.innerHTML = ''; // Hapus gambar bendera
+            } else {
+                cell.flagged = true;
+                // Buat elemen <img> untuk menampilkan foto wajah Anda
+                const img = document.createElement('img');
+                img.src = '../img/uwak.jpg'; // Ganti dengan lokasi gambar wajah Anda
+                img.alt = 'Flag';
+                img.classList.add('flag-image');
+                cell.element.innerHTML = ''; // Hapus konten sebelumnya
+                cell.element.appendChild(img); // Tambahkan gambar wajah
+            }
+        }
+    
+        function revealAllBombs() {
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    if (grid[row][col].bomb) {
+                        grid[row][col].element.textContent = '💣';
+                        grid[row][col].element.classList.add('bomb');
+                    }
+                }
+            }
+        }
+    
+        function showModal() {
+            document.getElementById('game-over-modal').style.display = 'flex';
+        }
+    
+        function closeModal() {
+            document.getElementById('game-over-modal').style.display = 'none';
+            startGame();
+        }
+    
+        function showWinModal() {
+            document.getElementById('win-modal').style.display = 'flex';
+        }
+    
+        function closeWinModal() {
+            document.getElementById('win-modal').style.display = 'none';
+            startGame();
+        }
+    
+        startGame();
+    </script>
+    
+    <style>
+        .flag-image {
+            width: 30px;
+            height: 30px;
+            object-fit: cover;
+            margin: 0;
+        }
+    </style>
+    
+
+</body>
+</html>
